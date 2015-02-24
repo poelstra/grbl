@@ -61,6 +61,13 @@
 // reset pin.
 // #define ABORT_LOCK // Uncomment to enable
 
+// Auto-reset Grbl when a critical alarm (e.g. hard/soft limit) becomes active.
+// By default, Grbl will print a message and force the user to 'manually' reset.
+// Although this is guaranteed to be safe, it also prevents e.g. GUI's from
+// updating their status. Note: the alarm will still be active, even after the
+// reset, so you'll always need e.g. $X or $H to continue anyway.
+// #define AUTO_RESET_ON_CRITICAL_ALARM // Uncomment to enable
+
 // Define the homing cycle patterns with bitmasks. The homing cycle first performs a search mode
 // to quickly engage the limit switches, followed by a slower locate mode, and finished by a short
 // pull-off motion to disengage the limit switches. The following HOMING_CYCLE_x defines are executed 

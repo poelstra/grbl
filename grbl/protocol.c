@@ -198,17 +198,21 @@ void protocol_execute_realtime()
     } else if (rt_exec & EXEC_ALARM_HOMING_FAIL) {
       report_alarm_message(ALARM_HOMING_FAIL);
     }
-    // Halt everything upon a critical event flag. Currently hard and soft limits flag this.
     if (rt_exec & EXEC_CRITICAL_EVENT) {
-      report_feedback_message(MESSAGE_CRITICAL_EVENT);
-      bit_false_atomic(sys.rt_exec_state,EXEC_RESET); // Disable any existing reset
-      do { 
-        // Nothing. Block EVERYTHING until user issues reset or power cycles. Hard limits
-        // typically occur while unattended or not paying attention. Gives the user time
-        // to do what is needed before resetting, like killing the incoming stream. The 
-        // same could be said about soft limits. While the position is not lost, the incoming
-        // stream could be still engaged and cause a serious crash if it continues afterwards.
-      } while (bit_isfalse(sys.rt_exec_state,EXEC_RESET));
+      #ifdef AUTO_RESET_ON_CRITICAL_ALARM
+        mc_reset();
+      #else
+        // Halt everything upon a critical event flag. Currently hard and soft limits flag this.
+        report_feedback_message(MESSAGE_CRITICAL_EVENT);
+        bit_false_atomic(sys.rt_exec_state,EXEC_RESET); // Disable any existing reset
+        do {
+          // Nothing. Block EVERYTHING until user issues reset or power cycles. Hard limits
+          // typically occur while unattended or not paying attention. Gives the user time
+          // to do what is needed before resetting, like killing the incoming stream. The
+          // same could be said about soft limits. While the position is not lost, the incoming
+          // stream could be still engaged and cause a serious crash if it continues afterwards.
+        } while (bit_isfalse(sys.rt_exec_state,EXEC_RESET));
+      #endif
     }
     bit_false_atomic(sys.rt_exec_alarm,0xFF); // Clear all alarm flags
   }
