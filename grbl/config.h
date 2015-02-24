@@ -56,6 +56,11 @@
 // mainly a safety feature to remind the user to home, since position is unknown to Grbl.
 #define HOMING_INIT_LOCK // Comment to disable
 
+// If the abort/reset pin is connected, abort lock sets Grbl into an alarm state as long as the abort
+// pin is active. Useful for people who wire their EStop and/or power enable signal to Grbl's
+// reset pin.
+// #define ABORT_LOCK // Uncomment to enable
+
 // Define the homing cycle patterns with bitmasks. The homing cycle first performs a search mode
 // to quickly engage the limit switches, followed by a slower locate mode, and finished by a short
 // pull-off motion to disengage the limit switches. The following HOMING_CYCLE_x defines are executed 

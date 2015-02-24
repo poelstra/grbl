@@ -93,6 +93,9 @@ void system_init();
 // Returns if safety door is open or closed, based on pin state.
 uint8_t system_check_safety_door_ajar();
 
+// Returns true when abort pin is active
+bool system_check_abort_lock();
+
 // Executes an internal system command, defined as a string starting with a '$'
 uint8_t system_execute_line(char *line);
 

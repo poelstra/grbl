@@ -47,6 +47,9 @@ ISR(CONTROL_INT_vect)
   // Enter only if any CONTROL pin is detected as active.
   if (pin) { 
     if (bit_istrue(pin,bit(RESET_BIT))) {
+      #ifdef ABORT_LOCK
+        bit_true_atomic(sys.rt_exec_alarm, EXEC_ALARM_ABORT_CYCLE);
+      #endif
       mc_reset();
     } else if (bit_istrue(pin,bit(CYCLE_START_BIT))) {
       bit_true(sys.rt_exec_state, EXEC_CYCLE_START);
@@ -73,6 +76,21 @@ uint8_t system_check_safety_door_ajar()
     #endif
   #else
     return(false); // Input pin not enabled, so just return that it's closed.
+  #endif
+}
+
+
+// Returns true when abort pin is active
+bool system_check_abort_lock()
+{
+  #ifdef ABORT_LOCK
+    #ifdef INVERT_CONTROL_PIN
+      return(bit_istrue(CONTROL_PIN,bit(RESET_BIT)));
+    #else
+      return(bit_isfalse(CONTROL_PIN,bit(RESET_BIT)));
+    #endif
+  #else
+    return(false); // Abort pin not connected or don't want lock-out
   #endif
 }
 
@@ -135,7 +153,11 @@ uint8_t system_execute_line(char *line)
       break; 
     case 'X' : // Disable alarm lock [ALARM]
       if ( line[++char_counter] != 0 ) { return(STATUS_INVALID_STATEMENT); }
-      if (sys.state == STATE_ALARM) { 
+      if (system_check_abort_lock()) {
+        report_feedback_message(MESSAGE_ABORT_LOCK);
+        return(STATUS_ALARM_LOCK); // TODO: Maybe custom status would be better (instead of MESSAGE_ABORT_LOCK)
+      }
+      if (sys.state == STATE_ALARM) {
         report_feedback_message(MESSAGE_ALARM_UNLOCK);
         sys.state = STATE_IDLE;
         // Don't run startup script. Prevents stored moves in startup from causing accidents.
@@ -166,6 +188,12 @@ uint8_t system_execute_line(char *line)
           else { report_ngc_parameters(); }
           break;          
         case 'H' : // Perform homing cycle [IDLE/ALARM]
+          // Prevent homing when abort lock is active
+          if (system_check_abort_lock()) {
+            report_feedback_message(MESSAGE_ABORT_LOCK);
+            return(STATUS_ALARM_LOCK); // TODO: Maybe custom status would be better (instead of MESSAGE_ABORT_LOCK)
+          }
+
           if (bit_istrue(settings.flags,BITFLAG_HOMING_ENABLE)) { 
             sys.state = STATE_HOMING; // Set system state variable
             // Only perform homing if Grbl is idle or lost.

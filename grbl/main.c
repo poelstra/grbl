@@ -48,6 +48,9 @@ int main(void)
   #ifdef HOMING_INIT_LOCK
     if (bit_istrue(settings.flags,BITFLAG_HOMING_ENABLE)) { sys.state = STATE_ALARM; }
   #endif
+
+  // Set system in alarm state if abort/reset pin is active on power-up
+  if (system_check_abort_lock()) { sys.state = STATE_ALARM; }
   
   // Grbl initialization loop upon power-up or a system abort. For the latter, all processes
   // will return to this loop to be cleanly re-initialized.

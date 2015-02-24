@@ -65,8 +65,10 @@ void protocol_main_loop()
   report_init_message();
 
   // Check for and report alarm state after a reset, error, or an initial power up.
-  if (sys.state == STATE_ALARM) {
-    report_feedback_message(MESSAGE_ALARM_LOCK); 
+  if (system_check_abort_lock()) {
+    report_feedback_message(MESSAGE_ABORT_LOCK);
+  } else if (sys.state == STATE_ALARM) {
+    report_feedback_message(MESSAGE_ALARM_LOCK);
   } else {
     // All systems go! But first check for safety door.
     if (system_check_safety_door_ajar()) {
