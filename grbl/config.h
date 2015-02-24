@@ -318,6 +318,10 @@
 // work well and are cheap to find) and wire in a low-pass circuit into each limit pin.
 // #define ENABLE_SOFTWARE_DEBOUNCE // Default disabled. Uncomment to enable.
 
+// Prevent an alarm (false positive) when a limit switch goes inactive.
+// See limits.c for detailed explanation.
+// #define LIMITS_NO_ALARM_ON_INACTIVE // Uncomment to enable
+
 // ---------------------------------------------------------------------------------------
 
 // TODO: Install compile-time option to send numeric status codes rather than strings.

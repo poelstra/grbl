@@ -25,6 +25,11 @@
 // Homing axis search distance multiplier. Computed by this value times the axis max travel.
 #define HOMING_AXIS_SEARCH_SCALAR  1.5 // Must be > 1 to ensure limit switch will be engaged.
 
+#ifdef LIMITS_NO_ALARM_ON_INACTIVE
+// State of limit pins as most recently processed by pin-change interrupt.
+// Used to prevent triggering on active-to-inactive transitions.
+volatile uint8_t limits_prev_bits;
+#endif
 
 void limits_init() 
 {
@@ -34,6 +39,11 @@ void limits_init()
     LIMIT_PORT &= ~(LIMIT_MASK); // Normal low operation. Requires external pull-down.
   #else
     LIMIT_PORT |= (LIMIT_MASK);  // Enable internal pull-up resistors. Normal high operation.
+  #endif
+
+  #ifdef LIMITS_NO_ALARM_ON_INACTIVE
+    limits_prev_bits = LIMIT_PIN & LIMIT_MASK;
+    if (bit_istrue(settings.flags,BITFLAG_INVERT_LIMIT_PINS)) { limits_prev_bits ^= LIMIT_MASK; }
   #endif
 
   if (bit_istrue(settings.flags,BITFLAG_HARD_LIMIT_ENABLE)) {
@@ -72,6 +82,27 @@ void limits_disable()
 #ifndef ENABLE_SOFTWARE_DEBOUNCE
   ISR(LIMIT_INT_vect) // DEFAULT: Limit pin change interrupt process. 
   {
+    #ifdef LIMITS_NO_ALARM_ON_INACTIVE
+      // Read current state of limit pins.
+      // Note: there's a small chance that the pins have already changed since
+      // the change was detected by the AVR. This may happen when people have
+      // unfiltered/noisy switches/cabling. In practice, the switch will
+      // eventually stabilize, and pin-change interrupts will keep happening.
+      uint8_t bits = LIMIT_PIN & LIMIT_MASK;
+      // Make bits be 1 if limit is hit
+      if (bit_isfalse(settings.flags,BITFLAG_INVERT_LIMIT_PINS)) {
+        bits ^= LIMIT_MASK;
+      }
+      // Detect whether any of the bits became active since
+      // the last time we got an interrupt.
+      uint8_t activated = (limits_prev_bits ^ bits) & bits;
+      // Remember new state: some limits may have been cleared, and we want
+      // to trigger when these trigger again.
+      limits_prev_bits = bits;
+      if (!activated) {
+        return;
+      }
+    #endif
     // Ignore limit switches if already in an alarm state or in-process of executing an alarm.
     // When in the alarm state, Grbl should have been reset or will force a reset, so any pending 
     // moves in the planner and serial buffers are all cleared and newly sent blocks will be 
